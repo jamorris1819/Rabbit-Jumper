@@ -84,9 +84,9 @@ public class Player : MonoBehaviour
         if (isDead || rbody.isKinematic)
             return;
 #if UNITY_EDITOR
-        transform.position += new Vector3(Input.GetAxis("Horizontal") * 0.5f * PLAYER_SPEED * Time.deltaTime, 0, 0);
+        rbody.position += new Vector2(Input.GetAxis("Horizontal") * 0.5f * PLAYER_SPEED * Time.deltaTime, 0);
 #elif UNITY_ANDROID
-        transform.position += new Vector3(Input.acceleration.x * 0.5f * PLAYER_SPEED * Time.deltaTime, 0, 0);
+        rbody.position += new Vector3(Input.acceleration.x * 0.5f * PLAYER_SPEED * Time.deltaTime, 0, 0);
 #endif
         if (rbody.velocity.y == 0) { 
             rbody.velocity += new Vector2(0, PLAYER_SPEED);
@@ -100,24 +100,18 @@ public class Player : MonoBehaviour
     {
         if (isDead)
             return;
-        if (other.tag == "Spring" && rbody.velocity.y <= 0 && state != State.BUBBLE)
-        {
-            rbody.velocity += new Vector2(0, PLAYER_SPEED * 1.5f);
-        }
-        else if (other.tag == "Spikes" && rbody.velocity.y <= 4f && (state == State.NORMAL || state == State.WINGS))
-        {
+        if (other.CompareTag("Spring") && rbody.velocity.y <= 0 && state != State.BUBBLE)
+            rbody.velocity = new Vector2(rbody.velocity.x, PLAYER_SPEED * 1.5f);
+        else if (other.CompareTag("Spikes") && rbody.velocity.y <= 0f && (state == State.NORMAL || state == State.WINGS))
             Die();
-        }
-        else if (other.tag == "Enemy" && rbody.velocity.y <= 4f && state != State.JETPACK)
-        {
+        else if (other.CompareTag("Enemy") && rbody.velocity.y <= 0f && state != State.JETPACK)
             Die();
-        }
-        else if (other.tag == "Coin")
+        else if (other.CompareTag("Coin"))
         {
             extraScore += 2;
-            Destroy(other.gameObject);
+            Platform.coinPool.Remove(other.gameObject);
             camera.GetComponent<AudioManager>().Play(coinSound);
-        } else if(other.tag == "Powerup" && state == State.NORMAL)
+        } else if(other.CompareTag("Powerup") && state == State.NORMAL)
         {
             Powerup powerup = other.GetComponent<Powerup>();
             if (powerup.type == Powerup.Type.JETPACK)
@@ -128,7 +122,6 @@ public class Player : MonoBehaviour
                 animator.SetTrigger("Grow");
                 animator.ResetTrigger("Shrink");
                 camera.GetComponent<AudioManager>().Play(jetpackSound);
-                Destroy(other.gameObject);
             }
             else if (powerup.type == Powerup.Type.WINGS)
             {
@@ -136,22 +129,21 @@ public class Player : MonoBehaviour
                 timer = 10f;
                 state = State.WINGS;
                 rbody.gravityScale = 1;
-                Destroy(other.gameObject);
             }
             else if (powerup.type == Powerup.Type.BUBBLE)
             {
                 bubble.SetActive(true);
-                timer = 10f;
+                timer = 4f;
                 state = State.BUBBLE;
-                rbody.gravityScale = -0.00001f;
+                rbody.gravityScale = -1f;
                 rbody.velocity = new Vector2(0, PLAYER_SPEED);
                 camera.GetComponent<AudioManager>().Play(bubbleSound);
-                Destroy(other.gameObject);
             }
-        } else if(other.tag == "Carrot")
+            Platform.powerupPool.Remove(other.gameObject);
+        } else if(other.CompareTag("Carrot"))
         {
             AddCarrot();
-            Destroy(other.gameObject);
+            Platform.carrotPool.Remove(other.gameObject);
         }
     }
 
@@ -161,7 +153,7 @@ public class Player : MonoBehaviour
         GetComponent<SpriteRenderer>().sprite = deadSprite;
         GetComponent<BoxCollider2D>().enabled = false;
         rbody.velocity += new Vector2(0, PLAYER_SPEED * 1.5f);
-        PlayerPrefs.SetInt("highscore", baseScore + extraScore);
+        PlayerPrefs.SetInt("highscore", Mathf.Max(baseScore + extraScore, PlayerPrefs.GetInt("highscore", 0)));
         PlayerPrefs.Save();
         SceneManager.LoadScene("MainMenu");
     }

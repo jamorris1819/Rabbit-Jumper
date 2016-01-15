@@ -11,31 +11,38 @@ public class Platform : MonoBehaviour {
     public float CHANCE_ENEMY = 0.2f;
     public float CHANCE_SPIKES = 0.2f;
 
-    public GameObject coin;
-    public GameObject pickup;
-    public GameObject spring;
-    public GameObject spikes;
-    public GameObject enemy;
-    public GameObject carrot;
+    public static Pool coinPool;
+    public static Pool powerupPool;
+    public static Pool springPool;
+    public static Pool spikesPool;
+    public static Pool carrotPool;
 
     public Sprite[] sprites;
     public Sprite[] damagedSprites;
     GameObject player;
     BoxCollider2D boxCollider;
+    LevelGeneration gen;
 
-	void Start () {
+    void Start()
+    {
         GetComponent<SpriteRenderer>().sprite = sprites[PlayerPrefs.GetInt("platformType", 0)];
         boxCollider = GetComponent<BoxCollider2D>();
         player = GameObject.Find("Player");
+    }
+
+	public void Begin () {
+        gen = Camera.main.GetComponent<LevelGeneration>();
+        foreach (Transform child in transform)
+            Destroy(child.gameObject);
         if (plain) return;
-        // What is on on each platform?
+        // This is the logic for creating each platform and furnishing it with items
         if (Random.value < 0.7f)
         {
             // This is the scenery half. We might add something to this platform that is purely visual
             if (Random.value <= 0.5f)
             {
-                GameObject carrotObject = (GameObject)Instantiate(carrot, transform.position + new Vector3(0, 0.5f, 0), Quaternion.identity);
-                carrotObject.transform.parent = transform;
+                GameObject carrotObject = Platform.carrotPool.Place(transform.position + new Vector3(0, 0.5f, 0));
+                gen.carrots.Add(carrotObject);
             }
         }
         else
@@ -45,33 +52,35 @@ public class Platform : MonoBehaviour {
             if (genVal >= 0 && genVal < CHANCE_COINS)
             {
                 // coins
-                GameObject coinObject = (GameObject)Instantiate(coin, transform.position, Quaternion.identity);
-                coinObject.transform.parent = transform;
+                GameObject coinObject = Platform.coinPool.Place(transform.position);
+                gen.coins.Add(coinObject);
+                //coinObject.transform.parent = transform;
                 //coin.SetActive(true);
             }
             else if (genVal >= CHANCE_COINS && genVal < CHANCE_COINS + CHANCE_PICKUP)
             {
                 // pickup
-                GameObject pickupObject = (GameObject)Instantiate(pickup, transform.position, Quaternion.identity);
-                pickupObject.transform.parent = transform;
+                GameObject powerupObject = Platform.powerupPool.Place(transform.position);
+                gen.powerups.Add(powerupObject);
+                //pickupObject.transform.parent = transform;
             }
             else if (genVal >= CHANCE_COINS + CHANCE_PICKUP && genVal < CHANCE_COINS + CHANCE_PICKUP + CHANCE_SPRING)
             {
                 // spring
-                GameObject springObject = (GameObject)Instantiate(spring, transform.position, Quaternion.identity);
-                springObject.transform.parent = transform;
+                GameObject springObject = Platform.springPool.Place(transform.position);
+                gen.springs.Add(springObject);
+                //springObject.transform.parent = transform;
             }
             else if (genVal >= CHANCE_COINS + CHANCE_PICKUP + CHANCE_SPRING && genVal < CHANCE_COINS + CHANCE_PICKUP + CHANCE_SPRING + CHANCE_ENEMY)
             {
                 // enemy
-                GameObject enemyObject = (GameObject)Instantiate(enemy, transform.position, Quaternion.identity);
-                enemyObject.transform.parent = transform;
             }
             else if (genVal >= CHANCE_COINS + CHANCE_PICKUP + CHANCE_SPRING + CHANCE_ENEMY && genVal < CHANCE_COINS + CHANCE_PICKUP + CHANCE_SPRING + CHANCE_ENEMY + CHANCE_SPIKES)
             {
                 // spikes
-                GameObject spikesObject = (GameObject)Instantiate(spikes, transform.position, Quaternion.identity);
-                spikesObject.transform.parent = transform;
+                GameObject spikesObject = Platform.spikesPool.Place(transform.position);
+                gen.spikes.Add(spikesObject);
+                //spikesObject.transform.parent = transform;
             }
         }
     }
